@@ -3,12 +3,14 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
 
-var port = process.env.OPENSHIFT_NODEJS_PORT || 8080;
-var ip = process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1';
+var port = 3000;
+var ip = '127.0.0.1';
+
+//console.log(process.env);
 
 
 
-http.listen(port, ip, function(){
+http.listen(port, function(){
   console.log('listening on ' + ip + ":" + port);
 });
 
