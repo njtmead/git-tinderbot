@@ -1,0 +1,244 @@
+<!doctype html>
+<html>
+<head>
+<script src="/socket.io/socket.io.js"></script>
+<script src="http://code.jquery.com/jquery-1.11.1.js"></script>  
+<title>Socket.IO chat</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; color: black; background: #ccc; }
+body { font: 13px Helvetica, Arial; text-align: center;}
+img { margin: 20px; }
+#update, #login, #messagespage {display: none; }
+#themsg {position: fixed; bottom: 0; left: 0; width: 70%; }
+#send {position: fixed; bottom: 0; right: 0; width: 25%; }
+</style>
+</head>
+<body>
+  
+<div id="login">
+	<form action="">
+		<input type="text" id="fbemail" autocomplete="off" placeholder="email"/><br>
+		<input type="password" id="fbpass" autocomplete="off" placeholder="password"/><br>  
+		<button>Login</button><br><br>
+	</form>
+</div>
+
+<div id="update">
+		<button id="updatebtn">Update</button><br><br>
+</div>
+	
+	<div id="msg">Attempting login...</div>
+	
+	<div id="matches"></div>
+	
+	<div id="messagespage">
+	
+		<button id="homebtn">Home</button><br><br>	
+		<div id="messages"></div>
+		<div>
+			<input type="text" id="themsg" autocomplete="off" placeholder="type msg"/><button id="send">Send</button>
+			<br><br><br>
+		
+		</div>
+	
+	</div>
+	
+<script>
+$(document).ready(function() {
+
+var storedata = {};
+var herid = "";
+
+var socket = io();  
+  
+$('form').submit(function(){
+
+	fbemail = $('#fbemail').val();
+	fbpass = $('#fbpass').val();
+
+	socket.emit('login', {fbemail: fbemail, fbpass: fbpass});
+	return false;
+
+});
+  
+$('#updatebtn').click(function(){  
+	socket.emit('update');	
+});
+  
+$('#homebtn').click(function(){  
+	$('#matches').show();
+	$('#messagespage').hide();
+});
+
+$('#send').click(function(){
+
+	themsg = $('#themsg').val();
+	
+	$('#themsg').val("");
+	
+	
+	var amount = 1;
+	var timerId = setInterval(function () {
+		obj = {herid: herid, themsg: themsg + amount};
+		socket.emit('msg her', obj);		
+		amount++;
+		if(amount === 10) {
+			clearInterval(timerId);
+		}
+	}, 10 * 1000); // do this every x seconds 
+ 
+	
+	
+});
+  
+
+$("#matches").on("click", "img", function(event){
+	
+	$('#messages').html("");
+	
+	id = $(this).attr('id');
+	
+	herid = id;
+	
+	for(var i=0;i<storedata.matches.length;i++){
+		
+		var obj = storedata.matches[i];
+		
+		if (id == obj._id) {
+		
+			for(var i=0;i<obj.messages.length;i++){
+			
+				$('<p />')
+				.html(obj.messages[i].from + ": " + obj.messages[i].message)
+				.appendTo('#messages');
+			
+			}
+			
+			$('#matches').hide();
+			$('#messagespage').show();
+			
+			break;
+		
+		}		
+		
+	}	
+	
+});
+  
+socket.on('logged in', function(){
+	$('#login').hide();
+	$('#update').show();
+	$('#msg').html("");
+});
+  
+socket.on('logged out', function(){
+	$('#login').show();
+	$('#update').hide();
+	$('#msg').html("");
+});
+  
+socket.on('chat message', function(msg){
+	$('#msg').html(msg);
+});
+  
+socket.on('set cookie', function(data){
+	setCookie("fbid", data.fbid, 7);
+	setCookie("fbtoken", data.fbtoken, 7);
+});
+  
+socket.on('get cookie', function(data){
+	fbid = getCookie("fbid");
+	fbtoken = getCookie("fbtoken");
+	obj = { fbid: fbid, fbtoken: fbtoken };
+	socket.emit('set cookie', obj);
+});
+  
+  
+socket.on('matches', function(msg){
+	storedata = msg;
+	$('#msg').html("");
+
+	output = "";
+	$('#matches').html("");
+
+	for(var i=0;i<msg.matches.length;i++){
+	
+		var obj = msg.matches[i];
+
+		name = obj.person.name;
+		id = obj._id;
+		url = obj.person.photos[0].processedFiles[1].url;
+
+		$('<img id="' + id + '"/>')
+		.attr('src',url)
+		.appendTo('#matches');
+
+		$('<span/>')
+		.html(name)
+		.appendTo('#matches');
+
+	}
+
+});
+  
+  
+  socket.on('recs', function(msg){
+    //$('#matches').append($('<li>').text(msg));
+	//$('#matches').html(JSON.stringify(msg));
+				$('#msg').html("");
+
+	output = "";
+	$('#matches').html("");
+	
+    for(var i=0;i<msg.results.length;i++){
+        var obj = msg.results[i];
+		
+		name = obj.name;
+		url = obj.photos[0].processedFiles[1].url;
+		
+		$('<img/>')
+		.attr('src',url)
+		.appendTo('#matches');
+		
+		$('<span/>')
+		.html(name)
+		.appendTo('#matches');
+		
+		//output += name + url;
+		
+        for(var key in obj){
+            //var attrName = key;
+            //var attrValue = obj[key];
+			//output += attrName + ": " + attrValue + "\n";
+        }
+		
+    }
+	
+	//$('#matches').html(output);	
+	
+  });
+  
+function setCookie(cname, cvalue, exdays) {
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays*24*60*60*1000));
+    var expires = "expires="+d.toUTCString();
+    document.cookie = cname + "=" + cvalue + "; " + expires;
+}
+
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0; i<ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1);
+        if (c.indexOf(name) == 0) return c.substring(name.length,c.length);
+    }
+    return "";
+}
+
+});
+
+</script>
+
+</body>
+</html>
