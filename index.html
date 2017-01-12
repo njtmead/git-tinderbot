@@ -1,152 +1,932 @@
 <!doctype html>
 <html>
 <head>
-<script src="/socket.io/socket.io.js"></script>
-<script src="http://code.jquery.com/jquery-1.11.1.js"></script>  
-<title>Socket.IO chat</title>
+<title>eTinder - Web Tinder Tools</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; color: black; background: #ccc; }
-body { font: 13px Helvetica, Arial; text-align: center;}
-img { margin: 20px; }
-#update, #login, #messagespage {display: none; }
-#themsg {position: fixed; bottom: 0; left: 0; width: 70%; }
-#send {position: fixed; bottom: 0; right: 0; width: 25%; }
+* { 
+margin: 0; 
+padding: 0; 
+box-sizing: border-box; 
+color: black; 
+text-align: center;
+}
+
+*:not(html) {
+    -webkit-transform: translate3d(0, 0, 0);
+}
+
+body { 
+font: 13px Helvetica, Arial; 
+width: 100vw; 
+height: calc(100vh - 60px); 
+display: flex; 
+flex-direction: column;
+overflow: hidden;
+}
+pre {
+overflow: hidden;
+}
+img { width: 60px; border-radius: 100px; display: inline-block; vertical-align: top;}
+.msgpic { width: 70vw; max-width: 400px; border-radius: 0; display: block; }
+.swipeimg { width: 35%; margin: 10px; border-radius: 0;}
+.msgtopimg { width: 26px;}
+ul { list-style-type: none;}
+.navbar {margin: 0 !important;}
+.navbar-brand small { display:block; font-size:12px;}
+#msg { min-height: 20px; height: auto; width: 100%; color: red; margin: 0; line-height: 20px;}
+#matches { overflow; auto; }
+#matches li { margin: 0 auto; padding: 5px; border-radius: 80px; display: block; width: 100%; text-align: left;}
+.lastmsgbox {display: inline-block; text-align: left; margin-left: 13px; vertical-align: middle; width: 70%;}
+.lastmsgline {height: 1.5em; line-height: 1.5em; overflow: hidden; width: 100%; display: block; text-align: left;}
+.bold { font-weight: bold;}
+.lighter { font-weight: lighter;}
+.italic { font-style: italic;}
+#recs li { display: none; padding: 20px; border-bottom: 1px solid #e7e7e7;}
+#recs>li:first-child { display: block; }
+.swipeaction { margin: 5px; width: 120px; }
+#login, #settingsdiv, #navbtns {display: none; margin: 0 auto; margin-bottom: 20px;}
+
+#settingsdiv{
+width: 100%;
+max-width: 600px;
+overflow-y: auto;
+}
+
+#mapdiv {
+display: none;
+}
+
+#msgdiv, #swipediv, #msgalldiv, #matchesdiv, #userdiv {
+display: none; 
+flex: 1; 
+flex-direction: column;
+
+overflow: auto;
+-webkit-overflow-scrolling: touch;
+
+width: 100%; 
+max-width: 900px; 
+margin: 0 auto;
+
+}
+
+#msgtopdiv, #usertopdiv { margin:5px;}
+#msgtop, #msgform {display: inline-block; margin: 5px;}
+#settingsdiv{ background-color: #f8f8f8; border: 1px solid #e7e7e7; padding: 20px; margin-top: 20px; }
+#messages, #user {
+overflow: auto; 
+flex: 1;
+}
+
+.fromme {color: white; float: right; background: #337ab7; max-width: 80%; margin: 2px 4px; padding: 5px; border-radius: 10px; clear: both; text-align: left;}
+.fromthem {color: black; float: left; background: #e7e7e7; max-width: 80%; margin: 2px 4px; padding: 5px; border-radius: 10px; clear: both; text-align: left;}
+
+#msgmsg {width: 70%; height: 39px; text-align: left; margin: 0 5px 0 0; padding: 5px; vertical-align: middle; }
+#send {width: 25%; height: 39px; margin: 0; padding: 0; vertical-align: middle;}
+
+#msgallmsg, #msgallsubmit {height: 39px; width: 80%; margin: 10px auto; vertical-align: middle;}
+.swipecontent {overflow: auto;}
+.blue {
+color: #5bc0de;
+}
+.red {
+color: #c9302c;
+}
+
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
+
+#uploadForm {
+	display: inline-block;
+}
+
 </style>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+<script src="/js/jquery.form.js"></script>
+
+
 </head>
 <body>
+
+<nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span> 
+      </button>
+      <a class="navbar-brand" href="#">eTinder - Web Tinder Tools</a>
+    </div>
+  </div>
+</nav>
+
+<div id="msg"></div>
   
 <div id="login">
-	<form action="">
-		<input type="text" id="fbemail" autocomplete="off" placeholder="email"/><br>
-		<input type="password" id="fbpass" autocomplete="off" placeholder="password"/><br>  
-		<button>Login</button><br><br>
+	<form id="loginform" action="">
+		Facebook Login for Tinder<br><br>
+		<input type="text" id="fbemail" autocomplete="off" placeholder="email"/><br><br>
+		<input type="password" id="fbpass" autocomplete="off" placeholder="password"/><br><br>
+		<button class="btn btn-primary">Login</button><br><br>
 	</form>
+</div>	
+
+<div id="navbtns">
+	<button class="btn btn-primary" id="swipebtn">Swipe</button>
+	<button class="btn btn-success" id="matchesbtn">Matches</button>
+	<button class="btn btn-warning" id="msgallbtn">Msg All</button>
+	<button class="btn btn-default settingstoggle" id="settingsbtn"><span class="glyphicon glyphicon-cog"></span></button>
 </div>
 
-<div id="update">
-		<button id="updatebtn">Update</button><br><br>
-</div>
 	
-	<div id="msg">Attempting login...</div>
+	<div id="settingsdiv">
 	
-	<div id="matches"></div>
-	
-	<div id="messagespage">
-	
-		<button id="homebtn">Home</button><br><br>	
-		<div id="messages"></div>
-		<div>
-			<input type="text" id="themsg" autocomplete="off" placeholder="type msg"/><button id="send">Send</button>
-			<br><br><br>
+		<button class="btn btn-default" id="refreshbtn"><span class="glyphicon glyphicon-time"></span> Update Distance & Time Data</button><br><br>
+		<button class="btn btn-default" id="deletebtn"><span class="glyphicon glyphicon-download red"></span> Reload All Match History</button><br><br>
+		<button class="btn btn-default" id="reloadswipes"><span class="glyphicon glyphicon-refresh"></span> Get New Swipe List</button><br><br>
+		<button class="btn btn-default" id="logout"><span class="glyphicon glyphicon-remove"></span> Log Out</button>
+
+		<br><br>
+
+		Sort Matches by:<br>
+		<select id="sorttype">
+			<option value="default" selected="selected">Default Sort</option>
+			<option value="distance">Distance</option>
+			<option value="ping">Ping Time</option>		
+		</select><br><br>
 		
+		Distance Less Than<br>
+		<select id="filterdistance">
+			<option value="999999" selected="selected">Any Distance</option>
+			<option value="1">1 mile</option>
+			<option value="2">2 miles</option>		
+			<option value="3">3 miles</option>
+			<option value="5">5 miles</option>		
+			<option value="10">10 miles</option>
+			<option value="15">15 miles</option>
+			<option value="20">20 miles</option>
+			<option value="30">30 miles</option>		
+			<option value="50">50 miles</option>
+			<option value="100">100 miles</option>		
+			<option value="200">200 miles</option>
+			<option value="500">500 miles</option>
+			<option value="1000">1000 miles</option>		
+			
+		</select><br><br>
+		
+		Active Time Within<br>
+		<select id="filterping">
+			<option value="5000" selected="selected">Any Time</option>
+			<option value="1">1 day</option>
+			<option value="2">2 days</option>
+			<option value="3">3 days</option>
+			<option value="7">1 week</option>
+			<option value="14">2 weeks</option>
+			<option value="31">1 month</option>	
+			<option value="93">3 months</option>	
+			<option value="186">6 months</option>	
+			<option value="365">12 months</option>		
+		</select>
+		
+		<br><br>
+		
+		<button class="btn btn-default" id="mapbtn"><span class="glyphicon glyphicon-map-marker"></span> Change Location</button>
+
+		<br><br>
+
+		<div id="mapdiv">
+			Click map to set location<br>
+			<div id="googleMap" style="width:80%;height:40vh;margin:0 auto;"></div>
+			<br><br>
 		</div>
-	
+		
+		<button class="btn btn-danger settingstoggle" id="settingsclosebtn">Close</button>
+		
 	</div>
-	
+			
+		<div id="swipediv">
+			<ul id="recs"></ul>
+		</div>
+		
+		<div id="matchesdiv">
+				<ul id="matches"></ul>
+		</div>	
+			
+		<div id="msgdiv">
+			<div id="msgtopdiv">
+				<button class='btn btn-success' id='matchesbtn2'>Back</button>
+				<span id="msgtop"></span>
+				<button class='btn btn-danger' id='userbtn'>User Info</button>
+				
+				<form id="uploadForm"
+					  enctype="multipart/form-data"
+					  action="/api/photos"
+					  method="post">
+					  
+					<span class="btn btn-default btn-file">
+						Send Pic <input type="file" id="userPhotoInput" name="userPhoto" />
+					</span>
+				</form>
+				
+			</div>
+			
+			<div id="messages"></div>
+			
+			<form id="msgform" action="">
+				<input type="text" id="msgmsg" autofocus autocomplete="off" placeholder="message..."/><button class="btn btn-info" id="send">Send</button>
+			</form>
+		</div>
+		
+		<div id="userdiv">
+			<div id="usertopdiv">
+				<button class='btn btn-success' id='msgbtn2'>Back</button>
+				<span id="usertop"></span>
+			</div>			
+			<div id="user"></div>			
+		</div>
+		
+		<div id="msgalldiv">	
+		
+			<form id="uploadFormall"
+				  enctype="multipart/form-data"
+				  action="/api/photos"
+				  method="post">
+				  
+				<span class="btn btn-default btn-file">
+					<span class="glyphicon glyphicon-time"></span> Send Pic To All Matches <input type="file" id="userPhotoInputall" name="userPhoto" />
+				</span>
+			</form>
+		
+			<form id="msgallform" action="">
+				<input type="text" id="msgallmsg" autofocus autocomplete="off" placeholder="message..."/>
+				<button class="btn btn-info" id="msgallsubmit">Send to All</button>
+			</form>
+			
+<pre>
+You can use the following short codes:
+
+[name]
+[distance]
+[distancekm]
+[birthdate]
+[birthmonth]
+[birthyear]
+</pre>
+
+		</div>
+						
+<script src="/socket.io/socket.io.js"></script>
+<!--
+<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+-->
 <script>
 $(document).ready(function() {
 
-var storedata = {};
-var herid = "";
+init();
 
-var loc = window.location;
-var host = loc.host;
-var socketurl = "ws://" + host;
+function init(){
 
-alert(socketurl);
+	storedmatches = { matches: [] };
+	mylastactivity = new Date("2012");
+	herid = "";
+	loginID = "";
+	refresh = false;
+	sending = false;
+	deletebtn = false;
+	prevscrollheight = 0;
+	newposition = 0;
 
-var socket = io.connect(socketurl);  
+	needupdate = 0;
+	doneupdate = 0;
+	sorttype = $('#sorttype').val();
+	filterdistance = $('#filterdistance').val();
+
+	filterping = $('#filterping').val();
+	d = new Date(); // today!
+	d.setDate(d.getDate() - filterping);
+	
+}
+
+socket = io();
+
+status('Choose a file :)');
+
+$("#userPhotoInput").change(function(){
+	$('#uploadForm').submit();
+});
+
+$('#uploadForm').submit(function() {
+	status('uploading the file ...');
+
+	$(this).ajaxSubmit({
+																													  
+		error: function(xhr) {
+			status('Error: ' + xhr.status);
+		},
+
+		success: function(response) {
+
+			if(response.error) {
+				status('Opps, something bad happened');
+				return;
+			}
+
+			var imageUrlOnServer = response.path;
+
+			status('Success, file uploaded to:' + imageUrlOnServer);
+			//$('<img/>').attr('src', imageUrlOnServer).appendTo($('body'));
+			
+			needsend = 0;
+			donesend = 0;
+			sending = true;
+				
+			msgdata = new Object();
+			msgdata.id = herid;
+			msgdata.msg = "I sent you a picture using eTinder. Log in at eTinder.com to see it. Picture ID=#" + imageUrlOnServer;
+			
+			needsend++;	
+			socket.emit('send msg', msgdata);			
+			
+		}
+		
+	});
+	
+	// Have to stop the form from submitting and causing                                                                                                       
+	// a page refresh - don't forget this                                                                                                                      
+	return false;
+	
+});
+
+$("#userPhotoInputall").change(function(){
+	$('#uploadFormall').submit();
+});
+
+$('#uploadFormall').submit(function() {
+	status('uploading the file ...');
+
+	$(this).ajaxSubmit({
+																													  
+		error: function(xhr) {
+			status('Error: ' + xhr.status);
+		},
+
+		success: function(response) {
+
+			if(response.error) {
+				status('Opps, something bad happened');
+				return;
+			}
+
+			var imageUrlOnServer = response.path;
+
+			status('Success, file uploaded to:' + imageUrlOnServer);
+			
+			needsend = 0;
+			donesend = 0;
+			sending = true;
+				
+			//send to all here			
+			for (i=0; i < storedmatches.matches.length; i++){
+			
+				obj = storedmatches.matches[i];
+				
+				name = obj.person.name;
+				id = obj._id;
+				
+				distance = obj.distance_mi;
+				distancekm = Math.round(distance*1.60934);
+				
+				pingtime = obj.person.ping_time;
+				pingyear = new Date(pingtime).getFullYear();
+
+				birthdate = new Date(obj.person.birth_date).getDate();
+				birthmonth = new Date(obj.person.birth_date).getMonth();
+				birthmonth++; //because month returns 0-11 range
+				birthyear = new Date(obj.person.birth_date).getFullYear();
+				
+				lastactive = obj.last_activity_date;
+				url = obj.person.photos[0].processedFiles[1].url;
+							
+				if (pingyear == 2014){					
+									
+					msgdata = new Object();
+					msgdata.id = id;
+					msgdata.msg = "I sent you a picture using eTinder. Log in at eTinder.com to see it. Picture ID=#" + imageUrlOnServer;
+					
+					needsend++;
+					socket.emit('send msg', msgdata);			
+							
+				}
+			
+			}
+						
+		}
+		
+	});
+	
+	// Have to stop the form from submitting and causing                                                                                                       
+	// a page refresh - don't forget this                                                                                                                      
+	return false;
+	
+});
+
+function status(message) {
+	$('#status').text(message);
+}
+
+$('#sorttype').change(function() {
+
+	sorttype = $('#sorttype').val();	
+	sortmatches(sorttype);		
+	updatematches();
+
+});
+
+$('#filterdistance').change(function() {
+
+	filterdistance = $('#filterdistance').val();	
+	sortmatches(sorttype);		
+	updatematches();
+
+});
+
+$('#filterping').change(function() {
+
+	filterping = $('#filterping').val();	
+	d = new Date(); // today!
+	d.setDate(d.getDate() - filterping);
+	sortmatches(sorttype);		
+	updatematches();
+
+});
   
-$('form').submit(function(){
+$('#loginform').submit(function(){
 
 	fbemail = $('#fbemail').val();
 	fbpass = $('#fbpass').val();
 
 	socket.emit('login', {fbemail: fbemail, fbpass: fbpass});
 	return false;
-
 });
-  
-$('#updatebtn').click(function(){  
-	socket.emit('update');	
-});
-  
-$('#homebtn').click(function(){  
-	$('#matches').show();
-	$('#messagespage').hide();
-});
-
-$('#send').click(function(){
-
-	themsg = $('#themsg').val();
-	
-	$('#themsg').val("");
-	
-	
-	var amount = 1;
-	var timerId = setInterval(function () {
-		obj = {herid: herid, themsg: themsg + amount};
-		socket.emit('msg her', obj);		
-		amount++;
-		if(amount === 10) {
-			clearInterval(timerId);
-		}
-	}, 10 * 1000); // do this every x seconds 
  
-	
-	
-});
-  
+ //$("#id").css("display", "flex");
+ 
+$('#logout').click(function(){ 
 
-$("#matches").on("click", "img", function(event){
+	//clear cookies
+	setCookie("fbid", "", -7);
+	setCookie("fbtoken", "", -7);
+
+	//reload page
+	location.reload();
+
+});
+
+$('#reloadswipes').click(function(){ 
+
+	$('#recs').html("loading swipes...");
+	socket.emit('get recs');
+
+});
+ 
+$('#matchesbtn').click(function(){
+	$('#navbtns').show();
+	$('#matchesdiv').show();
+	$('#swipediv').hide();
+	$('#msgdiv').hide();
+	$('#msgalldiv').hide();
 	
-	$('#messages').html("");
+	sortmatches(sorttype);		
+	updatematches();
+	updatemessagebox();
+});
+
+$('#matchesbtn2').click(function(){  
+	$('#navbtns').show();
+	$('#matchesdiv').show();
+	$('#swipediv').hide();
+	$('#msgdiv').hide();
+	$('#msgalldiv').hide();
+});
+
+$('#userbtn').click(function(){  
+	$('#userdiv').css("display", "flex");
+	$('#navbtns').hide();
+	$('#matchesdiv').hide();
+	$('#swipediv').hide();
+	$('#msgdiv').hide();
+	$('#msgalldiv').hide();
+});
+
+$('#msgbtn2').click(function(){  
+	$('#msgdiv').css("display", "flex");
+	$('#userdiv').hide();
+	$('#navbtns').hide();
+	$('#matchesdiv').hide();
+	$('#swipediv').hide();
+	$('#msgalldiv').hide();
+});
+
+$('#msgallbtn').click(function(){  
+	$('#matchesdiv').hide();
+	$('#swipediv').hide();
+	$('#msgdiv').hide();
+	$('#msgalldiv').show();
+});
+
+$('.settingstoggle').click(function(){  
+	$('#settingsdiv').toggle();
+	//initMap();
+});
+
+$('#mapbtn').click(function(){  
+	$('#mapdiv').toggle();
+	initMap();
+});
+
+$('#swipebtn').click(function(){  
+	$('#matchesdiv').hide();
+	$('#swipediv').show();
+	$('#msgdiv').hide();
+	$('#msgalldiv').hide();
 	
-	id = $(this).attr('id');
+	if ($('#recs li').length == 0){
 	
-	herid = id;
+		socket.emit('get recs');
+		$('#recs').html("loading swipes...");
 	
-	for(var i=0;i<storedata.matches.length;i++){
+	} else if ($('#recs li').length <= 10){
+	
+		socket.emit('get recs');
+
+	}
+
+});
+
+$('#refreshbtn').click(function(){  
+
+	refresh = true;
+	//$('#msg').html("updating matches latest distance and time");
+	alertmsg("updating matches latest distance and time");
+
+
+});
+
+$('#deletebtn').click(function(){  
+
+	deletebtn = true;
+	//$('#msg').html("reloading list of matches and history");
+	alertmsg("reloading list of matches and history");
+});
+
+socket.on('user data', function(userdata){
+
+	//console.log("user data received");
+	//console.log(userdata);
+
+	id = userdata.id;
+	distance = userdata.distance;
+	pingtime = userdata.pingtime;
+	
+	for (i = 0; i < storedmatches.matches.length; i++){
+	
+		//console.log("3");
+	
+		if (id == storedmatches.matches[i].person._id) {
 		
-		var obj = storedata.matches[i];
+			//console.log("1");
 		
-		if (id == obj._id) {
-		
-			for(var i=0;i<obj.messages.length;i++){
+			storedmatches.matches[i].distance_mi = distance;
+			storedmatches.matches[i].person.ping_time = pingtime;
+			doneupdate++;
+			//$('#msg').html("updated " + doneupdate + " of " + needupdate);
+			alertmsg("updated " + doneupdate + " of " + needupdate);
 			
-				$('<p />')
-				.html(obj.messages[i].from + ": " + obj.messages[i].message)
-				.appendTo('#messages');
-			
-			}
-			
-			$('#matches').hide();
-			$('#messagespage').show();
+			console.log("updated " + doneupdate + " of " + needupdate);
 			
 			break;
 		
-		}		
+		}	
+	
+	}
+	
+	if (needupdate == doneupdate){
+	
+		sortmatches(sorttype);		
+		updatematches();
+		updatemessagebox();
+		//socket.emit('update history', mylastactivity);
+		
+	}
+
+});
+
+
+
+$("#recs").on("click", ".swipeaction", function(event){	
+	
+	swipeaction = $(this).attr('id');	
+	socket.emit('swipe action', {swipeaction: swipeaction});
+	
+	$(this).parent().remove();
+	
+	if ($('#recs li').length == 0){
+	
+		socket.emit('get recs');
+		$('#recs').html("loading swipes...");
+	
+	} else if ($('#recs li').length <= 10){
+	
+		socket.emit('get recs');
+
+	}
+
+	
+});
+
+$('#msgform').submit(function(){
+
+	needsend = 0;
+	donesend = 0;
+	sending = true;
+
+	msgmsg = $('#msgmsg').val();	
+	$('#msgmsg').val("");
+		
+	msgdata = new Object();
+	msgdata.id = herid;
+	msgdata.msg = msgmsg;
+	
+	needsend++;	
+	socket.emit('send msg', msgdata);			
+		
+	return false;
+		
+});
+
+$('#msgallform').submit(function(){
+
+	needsend = 0;
+	donesend = 0;
+	sending = true;
+
+	msgallmsg = $('#msgallmsg').val();	
+	$('#msgallmsg').val("");
+	
+	for (i=0; i < storedmatches.matches.length; i++){
+	
+		obj = storedmatches.matches[i];
+		
+		name = obj.person.name;
+		id = obj._id;
+		
+		distance = obj.distance_mi;
+		distancekm = Math.round(distance*1.60934);
+		
+		pingtime = obj.person.ping_time;
+		pingyear = new Date(pingtime).getFullYear();
+
+		birthdate = new Date(obj.person.birth_date).getDate();
+		birthmonth = new Date(obj.person.birth_date).getMonth();
+		birthmonth++; //because month returns 0-11 range
+		birthyear = new Date(obj.person.birth_date).getFullYear();
+		
+		lastactive = obj.last_activity_date;
+		url = obj.person.photos[0].processedFiles[1].url;
+					
+		//if (pingyear == 2014){
+			
+			custommsg = msgallmsg;
+			custommsg = custommsg.replace("[name]", name);
+			custommsg = custommsg.replace("[birthdate]", birthdate);
+			custommsg = custommsg.replace("[birthmonth]", birthmonth);
+			custommsg = custommsg.replace("[birthyear]", birthyear);
+			custommsg = custommsg.replace("[distance]", distance);
+			custommsg = custommsg.replace("[distancekm]", distancekm);				
+							
+			//sendmsg(id, custommsg, socket);
+			msgdata = new Object();
+			msgdata.id = id;
+			msgdata.msg = custommsg;
+			
+			needsend++;
+			socket.emit('send msg', msgdata);			
+					
+		//}
+	
+	}
+		
+	return false;
+		
+});
+
+socket.on('msg sent', function(){
+		donesend++;
+		console.log("sent " + donesend + " of " + needsend);
+		
+		if (donesend == needsend){
+		
+			console.log("done sending");
+		
+			sending = false;
+			socket.emit('update history', mylastactivity);
+		
+		}
+	
+});  
+
+$("#matches").on("click", "li", function(event){	
+
+	id = $(this).attr('id');
+	
+	herid = id;	
+			
+	$('#navbtns').hide();
+	$('#matchesdiv').hide();
+	$('#swipediv').hide();
+	$('#msgdiv').css("display", "flex");
+	$('#msgalldiv').hide();	
+	
+	$( "#msgmsg" ).focus();
+	
+	updatemessagebox();	
+	updatemessagebox();	
+		
+});  
+  
+function updatemessagebox(){
+
+	$('#messages').html("");
+	$('#user').html("");
+
+	for(i=0;i<storedmatches.matches.length;i++){
+		
+		obj = storedmatches.matches[i];
+		
+		if (herid == obj._id) {
+		
+			name = obj.person.name;
+			bio = obj.person.bio;
+			url = obj.person.photos[0].processedFiles[1].url;
+			
+			$('#msgtop').html("<img class='msgtopimg' src='" + url + "' /> " + name);
+			$('#usertop').html("<img class='msgtopimg' src='" + url + "' /> " + name);
+		
+			for(var i=0;i<obj.messages.length;i++){
+			
+				from = obj.messages[i].from;
+				message = obj.messages[i].message;
+				
+				picmsgsearch = "ID=#";
+				picmsgsearchlength = picmsgsearch.length;				
+				picmsgindex = message.indexOf(picmsgsearch);
+				
+				if (picmsgindex > -1){
+					//it is a pic msg
+					message = message.substring(picmsgindex + picmsgsearchlength);
+					message = "<img class='msgpic' src='" + message + "'>";
+						
+				}
+			
+				if (from == loginID) {
+				
+					$('<p class="fromme" />')
+					.html(message)
+					.appendTo('#messages');
+				
+				} else {
+			
+					$('<p class="fromthem" />')
+					.html(message)
+					.appendTo('#messages');
+					
+				}
+			
+			}
+			
+			photos = "";
+			
+			for(var i=0;i<obj.person.photos.length;i++){
+						
+				url = obj.person.photos[i].processedFiles[1].url;
+				photos += "<img class='swipeimg' src='" + url + "' />";
+			
+			}			
+			
+			$('#user').html(photos + "<br><br>" + bio);
+			
+			$('#messages').scrollTop($('#messages').prop("scrollHeight"));			
+												
+			break;
+			
+		}
+		
+	}
+	
+	//$('#messages').scrollTop($('#messages')[0].scrollHeight);	
+
+}
+
+setInterval(function(){ 
+
+	newscrollheight = $('#messages').prop("scrollHeight");
+
+	if (newscrollheight != prevscrollheight) {
+
+		$('#messages').scrollTop($('#messages').prop("scrollHeight"));	
+		prevscrollheight = newscrollheight;
 		
 	}	
 	
-});
-  
-socket.on('logged in', function(){
+}, 1000);
+
+
+//$('#messages').bind("DOMSubtreeModified",function(){
+
+	//$('#messages').scrollTop($('#messages').prop("scrollHeight"));	
+
+	//$('#messages').scrollTop($('#messages')[0].scrollHeight);	
+	//$('#messages').scrollTop(999999);	
+	
+    //alert('changed');
+//});
+
+
+
+
+
+//$("#messages").on('load', 'img', function() { console.log("image loaded correctly"); });
+   
+socket.on('logged in', function(data){
+
+	if(data.loginID){
+		loginID = data.loginID;
+	}
+	
+	//socket.emit('get recs');
+	
 	$('#login').hide();
-	$('#update').show();
-	$('#msg').html("");
+	//$('#msg').html("");
+	$('#matchesdiv').show();
+	$('#navbtns').show();
+	$('#swipediv').hide();
+	$('#msgdiv').hide();
+	$('#msgalldiv').hide();
+	
 });
   
 socket.on('logged out', function(){
+
+	init();
+
 	$('#login').show();
-	$('#update').hide();
-	$('#msg').html("");
+	//$('#msg').html("");
+	$('#matchesdiv').hide();
+	$('#swipediv').hide();
+	$('#msgdiv').hide();
+	$('#msgalldiv').hide();
+	$('#navbtns').hide();
 });
   
 socket.on('chat message', function(msg){
+	//$('#msg').html(msg);
+	//$('#msg').animate({opacity:0}, 2000);
+	alertmsg(msg);
+});  
+
+function alertmsg(msg){
+	//$('#msg').animate({opacity:1}, 1);
 	$('#msg').html(msg);
-});
-  
+	//$('#msg').animate({opacity:0}, 5000);
+}
+
 socket.on('set cookie', function(data){
 	setCookie("fbid", data.fbid, 7);
 	setCookie("fbtoken", data.fbtoken, 7);
@@ -158,72 +938,327 @@ socket.on('get cookie', function(data){
 	obj = { fbid: fbid, fbtoken: fbtoken };
 	socket.emit('set cookie', obj);
 });
-  
-  
-socket.on('matches', function(msg){
-	storedata = msg;
-	$('#msg').html("");
 
-	output = "";
+socket.on('matches', function(data){
+
+	updatefile = false;
+	
+	if (data) {
+	
+		if (data.last_activity_date){
+		
+			mylastactivity = new Date(data.last_activity_date);						
+			
+		}
+
+		for (i=0; i<data.matches.length; i++){
+													
+			if (data.matches[i].person) {
+			
+				//$('#msg').html("New Match!");
+				alertmsgmsg = "New Match!";
+											
+				storedmatches.matches.push(data.matches[i]);
+				updatefile = true;
+			
+			} else if (data.matches[i].messages.length > 0) {
+			
+				//$('#msg').html("New Message!");
+				alertmsgmsg = "New Message!";
+				
+				totalmsgs = data.matches[i].messages.length;
+				
+				for (j=0; j < storedmatches.matches.length; j++){
+												
+					if (data.matches[i]._id == storedmatches.matches[j]._id) {
+					
+						for (msgno=0; msgno < totalmsgs; msgno++){
+					
+							messagetime = data.matches[i].messages[msgno].sent_date;
+							
+							storedmatches.matches[j].messages.push(data.matches[i].messages[msgno]);
+							storedmatches.matches[j]["last_activity_date"] = messagetime;
+							
+							updatefile = true;
+							
+						}
+						
+						break;
+						
+					}
+				
+				}			
+								
+			}						
+		
+		}
+		
+	}
+	
+	//remove matches where person field doesn't exist
+	for (i=storedmatches.matches.length;i--;){
+		if (!storedmatches.matches[i].person) {
+			console.log("person not found %s", storedmatches.matches[i]._id);
+			storedmatches.matches.splice(i,1);
+		}		
+	}
+	
+	if (updatefile){
+		
+		sortmatches(sorttype);		
+		updatematches();
+		updatemessagebox();
+		alertmsg(alertmsgmsg);
+		
+	}
+	
+	if (refresh){
+	
+		refresh = false;	
+		needupdate = 0;
+		doneupdate = 0;
+		
+		users = [];		
+		
+		for (i = 0; i < storedmatches.matches.length; i++){
+		
+			if (needupdate > 999999) { break; }
+		
+			if (storedmatches.matches[i].person){
+				
+				personid = storedmatches.matches[i].person._id;				
+				needupdate++;				
+				//socket.emit('update user', personid);
+				
+				users.push(personid);
+								
+			}
+		
+		}
+		
+		//console.log(users);
+		socket.emit('update user', users);
+		
+		//resume history updates
+		socket.emit('update history', mylastactivity);
+		
+	} else if (deletebtn){
+
+		storedmatches = { matches: [] };
+		socket.emit('delete');
+		deletebtn = false;
+	
+	} else if (!sending){
+		//setTimeout(function(){
+			//socket.emit('update history', mylastactivity);
+		//}, 2000);
+		
+		if ($('#recs li').length <= 10){
+	
+			//socket.emit('get recs');
+
+		}
+		
+		socket.emit('update history', mylastactivity);
+		
+	}
+	
+});
+
+function sortmatches(type){
+	
+	if (type == "distance") {
+	
+		//sort by distance
+		storedmatches.matches.sort(function(a,b){
+				
+			if (a.distance_mi) {
+				distancea = a.distance_mi;
+			} else {
+				distancea = 999999;
+			}
+			
+			if (b.distance_mi) {
+				distanceb = b.distance_mi;
+			} else {
+				distanceb = 999999;
+			}
+		
+			return distancea - distanceb;
+		
+		});
+		
+	} else if (type == "ping") {
+	
+		//sort by their last ping time
+		storedmatches.matches.sort(function(b,a){
+				
+			if (a.person.ping_time) {
+				datea = new Date(a.person.ping_time).getTime();
+			} else {
+				datea = new Date("2012").getTime();
+			}
+			
+			if (b.person.ping_time) {
+				dateb = new Date(b.person.ping_time).getTime();
+			} else {
+				dateb = new Date("2012").getTime();
+			}
+				
+			return datea - dateb;
+		
+		});
+		
+	} else {
+	
+		//sort by last activity, msg if exists, otherwise create time
+		storedmatches.matches.sort(function(b,a){
+				
+			if (a.messages.length) {
+				datea = new Date(a.last_activity_date).getTime();
+			} else {
+				datea = new Date(a.created_date).getTime();
+			}
+			
+			if (b.messages.length) {
+				dateb = new Date(b.last_activity_date).getTime();
+			} else {
+				dateb = new Date(b.created_date).getTime();
+			}
+		
+			return datea - dateb;
+		
+		});
+		
+	}
+	
+}
+
+function updatematches(){
+
+	//$('#msg').html("");
 	$('#matches').html("");
 
-	for(var i=0;i<msg.matches.length;i++){
-	
-		var obj = msg.matches[i];
-
+	for(i=0;i<storedmatches.matches.length;i++){
+		
+		obj = storedmatches.matches[i];
+		
 		name = obj.person.name;
 		id = obj._id;
 		url = obj.person.photos[0].processedFiles[1].url;
+		
+		if (obj.distance_mi){
+			distance = obj.distance_mi;
+		} else {
+			distance = 99999;
+		}
+		
+		if (obj.person.ping_time){
+		
+			pingtime = obj.person.ping_time;
+			sinceping = new Date().getTime() - new Date(pingtime).getTime();		
+			
+			sincepingdays = sinceping / (1000 * 3600 * 24);		
+			sincepinghours = sinceping / (1000 * 3600);		
+			sincepingmins = sinceping / (1000 * 60);	
+			sincepingsecs = sinceping / (1000);
+			
+			if (sincepingdays >= 1) {
+				sincepingmsg = Math.round(sincepingdays) + " days";
+			} else if (sincepinghours >= 1) {
+				sincepingmsg = Math.round(sincepinghours) + " hours";
+			} else if (sincepingmins >= 1) {
+				sincepingmsg = Math.round(sincepingmins) + " minutes";
+			} else if (sincepingsecs >= 1) {
+				sincepingmsg = Math.round(sincepingsecs) + " seconds";
+			}
+			
+		} else {
+			pingtime = new Date();
+			sincepingmsg = " 999 years";
+		}
+		
+		
+		distanceglyph = '<span class="glyphicon glyphicon-map-marker"></span> ';
+		timeglyph = '<span class="glyphicon glyphicon-time"></span> ';
+		
+		if (obj.messages.length){
+			lastmsgindex = obj.messages.length - 1;
+			//get latest msg
+			from = obj.messages[lastmsgindex].from;
+			message = obj.messages[lastmsgindex].message;
+			
+			glyph = '<span class="glyphicon glyphicon-arrow-right blue"></span> ';
+		
+			if (from == loginID) {
+			
+				glyph = '<span class="glyphicon glyphicon-arrow-left"></span> ';
+			
+			}
+			
+			lastmsg = glyph + message;
+			
+		
+		} else {
+			//no messages so new match!
+			glyph = '<span class="glyphicon glyphicon-star red"></span> ';
+			lastmsg = glyph + "New Match!";
+		}
+				
+		if (distance < filterdistance){
+		
+			if (new Date(pingtime).getTime() >= new Date(d).getTime()){
 
-		$('<img id="' + id + '"/>')
-		.attr('src',url)
-		.appendTo('#matches');
-
-		$('<span/>')
-		.html(name)
-		.appendTo('#matches');
+				$('<li id="' + id + '"/>')
+				.html("<img src='" + url + "' /><span class='lastmsgbox'><span class='lastmsgline bold'>" + name + "</span><span class='lastmsgline italic'>" + lastmsg + "</span><span class='lastmsgline lighter'>" + distanceglyph + distance + " miles " + timeglyph + sincepingmsg + "</span></span>")
+				.appendTo('#matches');
+			
+			}
+			
+		}
 
 	}
 
-});
+}  
   
-  
-  socket.on('recs', function(msg){
-    //$('#matches').append($('<li>').text(msg));
-	//$('#matches').html(JSON.stringify(msg));
-				$('#msg').html("");
+socket.on('recs', function(msg){
 
-	output = "";
-	$('#matches').html("");
+	if ($('#recs li').length == 0){
+		$('#recs').html("");
+	}
 	
     for(var i=0;i<msg.results.length;i++){
-        var obj = msg.results[i];
+        obj = msg.results[i];
 		
 		name = obj.name;
-		url = obj.photos[0].processedFiles[1].url;
+		id = obj._id;
+		bio = obj.bio;
+		distance = obj.distance_mi;
 		
-		$('<img/>')
-		.attr('src',url)
-		.appendTo('#matches');
+		photos = "";
 		
-		$('<span/>')
-		.html(name)
-		.appendTo('#matches');
+		if (obj.photos.length){
+				
+			for (j=0; j < obj.photos.length; j++){
+			
+				url = obj.photos[j].processedFiles[1].url;
+				photos += "<img class='swipeimg' src='" + url + "' />";
+			
+			}
+			
+		}
 		
-		//output += name + url;
 		
-        for(var key in obj){
-            //var attrName = key;
-            //var attrValue = obj[key];
-			//output += attrName + ": " + attrValue + "\n";
-        }
+		url = obj.photos[0].processedFiles[1].url;		
 		
+		$('<li id="' + id + '"/>')
+		.html("<button class = 'swipeaction btn btn-success' id = 'like" + id + "'>like</button><button class = 'swipeaction btn btn-danger' id = 'pass" + id + "'>pass</button><br><br><div class='swipecontent'>" + name + " (" + distance + " miles away)<br><br>" + photos + "<br><br>" + bio + "</div><br><br><button class = 'swipeaction btn btn-success' id = 'like" + id + "'>like</button><button class = 'swipeaction btn btn-danger' id = 'pass" + id + "'>pass</button>")
+		.appendTo('#recs');
+				
     }
-	
-	//$('#matches').html(output);	
-	
-  });
-  
+		
+});
+
 function setCookie(cname, cvalue, exdays) {
     var d = new Date();
     d.setTime(d.getTime() + (exdays*24*60*60*1000));
@@ -242,9 +1277,49 @@ function getCookie(cname) {
     return "";
 }
 
+
+
 });
 
+function initMap() {
+
+	if (!newposition) {
+		newposition = new google.maps.LatLng(-34.397, 150.644);
+	}		
+
+	var mapProp = {
+		center: newposition,
+		zoom:3,
+		mapTypeId:google.maps.MapTypeId.ROADMAP
+	};
+	  
+	var map=new google.maps.Map(document.getElementById("googleMap"),mapProp);
+	
+	var marker=new google.maps.Marker({
+		position: newposition,
+		map: map
+	});
+  	
+	map.addListener('click', function(e) {
+		
+		newposition = e.latLng;
+
+		var r = confirm("Do you want to set this as your new location?");
+		
+		if (r == true) {
+			//x = "You pressed OK!";			
+			marker.setPosition(newposition);	
+			socket.emit('set position', newposition);	
+		} else {
+			//x = "You pressed Cancel!";
+		}		
+		
+	});
+
+}
+
 </script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBAXqL6lwxUD4gs4BK8gQumti0wqd0vFLM"></script>
 
 </body>
 </html>

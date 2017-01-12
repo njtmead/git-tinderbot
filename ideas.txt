@@ -1,0 +1,9 @@
+server load / storage
+check updates if match / msg exists already
+msg time in msgs
+user info and pics
+new message icon / remove
+hotkeys to navigate / swipe
+like / pass buttons not flex
+send picture msg - text alert for non etinder users
+iphone bug - msg box disappears when lots of msgs
